@@ -1,6 +1,7 @@
 from agent import *
 from player import *
 from interface import *
+import argparse
 import sys
 
 # Features:
@@ -19,12 +20,19 @@ class simple_game:
 
 	def __init__(self,resource_density=[.8,.01,.19]):
 
+		parser = argparse.ArgumentParser()
+		# --windowed
+		parser.add_argument('--windowed',
+				action='store_true',
+				help='Starts game in windowed mode')
+		args = parser.parse_args()
+
 		self.xmin = -5
 		self.xmax = 5
 		self.ymax = 5
 		self.ymin = -5
 
-		self.interface = Interface()
+		self.interface = Interface(args)
 
 		self.resource_density = resource_density 
 

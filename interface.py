@@ -28,7 +28,7 @@ import time
 
 class Interface:
 
-	def __init__(self):
+	def __init__(self, args):
 
 		self.move = queue.Queue()
 		self.render = queue.Queue()
@@ -37,14 +37,17 @@ class Interface:
 		self.I.start()
 
 		self.screen_size = [800,800]
-
 		self.quit_flag = False
+
+		# From command-line arguments
+		self.display_flags = pygame.FULLSCREEN | pygame.RESIZABLE
+		if args.windowed:
+			self.display_flags ^= pygame.FULLSCREEN
 
 	def main_thread(self):
 
 		pygame.init()
-		# self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
-		self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
+		self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
 		pygame.event.set_blocked(None)
 		pygame.event.set_allowed([
 								pygame.KEYDOWN,
@@ -74,17 +77,21 @@ class Interface:
 			if event.unicode == 'd':
 				self.move.put(4)
 			if event.key == pygame.K_F11:
-				print(self.screen.get_flags() & pygame.FULLSCREEN)
 				if (self.screen.get_flags() & pygame.FULLSCREEN):
-					self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
+					self.display_flags ^= pygame.FULLSCREEN
 				else:
-					self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
+					self.display_flags |= pygame.FULLSCREEN
+				# Update display flags
+				self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
 			if event.key == pygame.K_ESCAPE:
 				self.quit_flag = True
 
 		if event.type == pygame.VIDEORESIZE:
+			# XXX: When VIDEORESIZE is triggered by set_mode event, event.size
+			# is not correct?
 			self.screen_size = list(event.size)
-			self.screen = pygame.display.set_mode(event.size,pygame.RESIZABLE)
+			# XXX: Why is this needed?
+			self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
 
 		if event.type == pygame.QUIT:
 			self.quit_flag = True
