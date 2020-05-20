@@ -12,3 +12,8 @@ Gameplay:
 
 - ESC exits the game
 
+Install and Run:
+
+	git clone https://github.com/griffinjb/adaptive_ai.git
+
+	python simple_game.py
