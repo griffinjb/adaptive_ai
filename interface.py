@@ -4,12 +4,9 @@ import queue
 import pygame
 import matplotlib.pyplot as plt
 import time
-# from cv2 import resize, INTER_NEAREST
 
 # Handles Issue where pygame display and capture
 # must run from same thread.
-
-# Is process
 
 # can handle requests via Q for:
 
@@ -17,9 +14,14 @@ import time
 
 	# User Input
 
+# Features:
+
+	# F11 -> Toggle Full Screen
+	# ESC -> Exit
+	# WASD -> Directional Control
+
 # Bugs:
 
-	# no fullscreen
 	# no corner drag resizing
 	# aspect ratio gets warped
 
@@ -41,7 +43,8 @@ class Interface:
 	def main_thread(self):
 
 		pygame.init()
-		self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
+		# self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
+		self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
 		pygame.event.set_blocked(None)
 		pygame.event.set_allowed([
 								pygame.KEYDOWN,
@@ -70,6 +73,14 @@ class Interface:
 				self.move.put(2)
 			if event.unicode == 'd':
 				self.move.put(4)
+			if event.key == pygame.K_F11:
+				print(self.screen.get_flags() & pygame.FULLSCREEN)
+				if (self.screen.get_flags() & pygame.FULLSCREEN):
+					self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
+				else:
+					self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
+			if event.key == pygame.K_ESCAPE:
+				self.quit_flag = True
 
 		if event.type == pygame.VIDEORESIZE:
 			self.screen_size = list(event.size)

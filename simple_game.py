@@ -3,6 +3,18 @@ from player import *
 from interface import *
 import sys
 
+# Features:
+
+	# F11 -> Toggle Full Screen
+	# ESC -> Exit
+	# WASD -> Directional Control
+
+# Bugs:
+
+	# no corner drag window resizing
+	# aspect ratio gets warped
+
+
 class simple_game:
 
 	def __init__(self,resource_density=[.8,.01,.19]):
@@ -113,7 +125,7 @@ class simple_game:
 	def init_agent(self):
 
 		# init agent (num percepts, num actions, base)
-		self.pieces += [Piece(agent(9,5,3),[0,0]) for _ in range(100)]
+		self.pieces += [Piece(agent(9,5,3),[0,0]) for _ in range(10)]
 
 	def init_player(self):
 		self.pieces += [Piece(player(self.interface),[0,0])]
