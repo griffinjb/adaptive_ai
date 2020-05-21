@@ -78,6 +78,9 @@ class agent:
 		# This cannot be realized with 0-vector, thus the 
 		# mean must be shifted to the centroid of the hypercube?
 
+		
+
+
 
 	def stochastic_map(self,P):
 

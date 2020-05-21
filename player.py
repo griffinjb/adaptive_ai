@@ -22,7 +22,7 @@ class player:
 
 	def copy(self):
 		new_agent = self.watcher.copy()
-		return(new_agent)		
+		return(new_agent)
 
 	def train(self,P,A):
 		self.watcher.train(P,A)

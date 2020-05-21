@@ -141,16 +141,3 @@ class Interface:
 			self.screen.blit(RGB_surface,(0,0))
 			pygame.display.update()
 
-
-
-
-
-			# plt.figure('Game Board')
-			# plt.cla()
-			# plt.imshow(canvas)
-			# plt.show(block=False)
-			# plt.pause(.01)
-
-
-
-

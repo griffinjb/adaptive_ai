@@ -75,7 +75,7 @@ class simple_game:
 
 				if str(coord) not in self.board.keys():
 
-					self.board[str(coord)] = self.new_block()
+					self.board[str(coord)] = self.new_block(coord)
 
 	def iter(self):
 
@@ -178,11 +178,18 @@ class simple_game:
 	def init_player(self):
 		self.pieces += [Piece(player(self.interface),[0,0])]
 
-	def new_block(self):
+	def new_block(self,coord):
 
 		PDF = self.resource_density
 
-		return(np.sum([step(np.random.uniform(0,1)-np.sum(PDF[:i]),1) for i in range(1,len(self.resource_density))]))
+		val = np.sum([step(np.random.uniform(0,1)-np.sum(PDF[:i]),1) for i in range(1,len(self.resource_density))])
+		if val == 1:
+			val = 0
+
+		if coord[0]%2 and val == 0:
+			val = 1
+
+		return(val)
 
 	def get_percept(self,piece):
 
@@ -207,7 +214,7 @@ class simple_game:
 			if str(coord) in self.board.keys():
 				P[i] = self.board[str(coord)]
 			else:
-				self.board[str(coord)] = self.new_block()
+				self.board[str(coord)] = self.new_block(coord)
 				P[i] = self.board[str(coord)]
 			i += 1
 
