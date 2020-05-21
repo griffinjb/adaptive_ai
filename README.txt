@@ -15,12 +15,10 @@ Gameplay:
 Install and Run:
 
 	git clone https://github.com/griffinjb/adaptive_ai.git
-<<<<<<< HEAD
 
 	pip install -r requirements.txt
 
-=======
 	pip install -r requirements.txt
->>>>>>> 2879ed008b06f38552be0f2d9ff4ced405ac613b
+
 	python simple_game.py
 
