@@ -16,4 +16,7 @@ Install and Run:
 
 	git clone https://github.com/griffinjb/adaptive_ai.git
 
+	pip install -r requirements.txt
+
 	python simple_game.py
+

@@ -28,10 +28,11 @@ import time
 
 class Interface:
 
-	def __init__(self):
+	def __init__(self, args):
 
 		self.move = queue.Queue()
 		self.render = queue.Queue()
+		self.textbox = queue.Queue()
 
 		self.I = threading.Thread(target=self.main_thread,daemon=True)
 		self.I.start()
@@ -39,12 +40,17 @@ class Interface:
 		self.screen_size = [800,800]
 
 		self.quit_flag = False
+		self.score_flag = False
+
+		# From command-line arguments
+		self.display_flags = pygame.FULLSCREEN | pygame.RESIZABLE
+		if args.windowed:
+			self.display_flags ^= pygame.FULLSCREEN
 
 	def main_thread(self):
 
 		pygame.init()
-		# self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
-		self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
+		self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
 		pygame.event.set_blocked(None)
 		pygame.event.set_allowed([
 								pygame.KEYDOWN,
@@ -73,19 +79,24 @@ class Interface:
 				self.move.put(2)
 			if event.unicode == 'd':
 				self.move.put(4)
+			if event.unicode == 'f':
+				self.score_flag = True
 			if event.key == pygame.K_F11:
-				print(self.screen.get_flags() & pygame.FULLSCREEN)
+
 				if (self.screen.get_flags() & pygame.FULLSCREEN):
-					self.screen = pygame.display.set_mode(self.screen_size,pygame.RESIZABLE)
+					self.display_flags ^= pygame.FULLSCREEN
 				else:
-					self.screen = pygame.display.set_mode(self.screen_size,pygame.FULLSCREEN,pygame.RESIZABLE)
+					self.display_flags |= pygame.FULLSCREEN
+				# Update display flags
+				self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)					
+
 			if event.key == pygame.K_ESCAPE:
 				self.quit_flag = True
 
 		if event.type == pygame.VIDEORESIZE:
 			self.screen_size = list(event.size)
-			self.screen = pygame.display.set_mode(event.size,pygame.RESIZABLE)
-
+			self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
+		
 		if event.type == pygame.QUIT:
 			self.quit_flag = True
 
@@ -107,13 +118,13 @@ class Interface:
 		if not self.render.empty():
 
 			canvas = self.render.get()
-			# canvas = resize(canvas,tuple(self.screen_size),interpolation=INTER_NEAREST)
+			text = self.textbox.get()
 
 			RGB_canvas = np.zeros([canvas.shape[0],canvas.shape[1],3])
 
 			# Colors of squares, rgb
-			# [background, floor, lava, gold]
-			colors = [[0,0,0],[6,78,102],[255,131,36],[255,210,48]]
+			# [background, floor, lava, gold,text]
+			colors = [[0,0,0],[6,78,102],[255,131,36],[255,210,48],[26,135,35]]
 
 			for i in range(canvas.shape[0]):
 				for j in range(canvas.shape[1]):
@@ -122,6 +133,9 @@ class Interface:
 
 			RGB_surface = pygame.surfarray.make_surface(RGB_canvas)
 			RGB_surface = pygame.transform.scale(RGB_surface,tuple(self.screen_size))
+
+
+			# txt_img = cv2.putText(txt_img,'OpenCV')
 
 
 			self.screen.blit(RGB_surface,(0,0))

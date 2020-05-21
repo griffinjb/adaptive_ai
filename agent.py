@@ -1,7 +1,6 @@
-
-from scipy.stats import norm
 import numpy as np
 import matplotlib.pyplot as plt
+import queue
 
 class agent:
 
@@ -21,6 +20,10 @@ class agent:
 		self.B 	= B		# base for keygen
 						# N states per dim
 
+		self.feedback = 0 # Training Feedback
+
+		self.training_queue = queue.Queue()
+
 		# so this is tricky, but we've been here before.
 
 		# NP dimensions occupytng 
@@ -34,6 +37,17 @@ class agent:
 
 		self.js = [0 for _ in range(self.B**NP)]
 
+	def copy(self):
+		new_agent = agent(self.NP,self.NA,self.B)
+
+		for i in range(len(self.PDFs)):
+
+			if 'array' in str(type(self.PDFs[i])):
+				new_agent.PDFs[i] = self.PDFs[i].copy()
+
+			new_agent.js[i] = self.js[i]
+
+		return(new_agent)
 
 	def tf(self,P):
 
@@ -44,7 +58,26 @@ class agent:
 		return(int(t@P))
 
 	def get_move(self,P):
-		return(self.stochastic_map(P))
+		m = self.stochastic_map(P)
+		if np.random.uniform(0,1) < self.feedback:
+			self.PDF_Update(P,m)
+		return(m)
+
+	# def linear_map(self,P):
+
+		# This policy estimator uses a set of linear filters.
+
+		# Each filter is applied to the (P)ercept,
+		# and gives the probability of an (A)ction
+
+		# W@P = PDF
+
+		# We can normalize P such that it lies on a ball,
+		# instead of a hypercube.
+
+		# This cannot be realized with 0-vector, thus the 
+		# mean must be shifted to the centroid of the hypercube?
+
 
 	def stochastic_map(self,P):
 
@@ -59,7 +92,9 @@ class agent:
 
 		return(self.iCDF(np.random.uniform(0,1),P))
 
+	def train(self,P,A):
 
+		self.PDF_Update(P,A)
 
 	# assume P is flattened
 	def PDF_Update(self,P,A):

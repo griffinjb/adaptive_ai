@@ -2,6 +2,7 @@ from agent import *
 from player import *
 from interface import *
 import sys
+import argparse
 
 # Features:
 
@@ -14,17 +15,27 @@ import sys
 	# no corner drag window resizing
 	# aspect ratio gets warped
 
+# Needs Improvement:
+
+	# hardcoded -> player copy agent
 
 class simple_game:
 
-	def __init__(self,resource_density=[.8,.01,.19]):
+	def __init__(self,resource_density=[.6,.2,.2]):
+
+		parser = argparse.ArgumentParser()
+		# --windowed
+		parser.add_argument('--windowed',
+				action='store_true',
+				help='Starts game in windowed mode')
+		args = parser.parse_args()
 
 		self.xmin = -5
 		self.xmax = 5
 		self.ymax = 5
 		self.ymin = -5
 
-		self.interface = Interface()
+		self.interface = Interface(args)
 
 		self.resource_density = resource_density 
 
@@ -63,29 +74,62 @@ class simple_game:
 		if self.interface.quit_flag:
 			sys.exit()
 
+		if self.interface.score_flag:
+			self.show_score()
+			self.interface.score_flag = False
+
 		for piece in self.pieces:
-			P = self.get_percept(piece)
-			piece.get_move(P)
-			self.get_percept(piece) # Update Visible
+			if not piece.isDead:
+				P = self.get_percept(piece)
+				piece.get_move(P,self.board)
+				self.get_percept(piece) # Update Visible
 
+		self.gen_clones()
 		self.train_all()
-
 		time.sleep(1/self.FPS)
 		self.show_board()
 
+	def gen_clones(self):
+
+		for piece in self.pieces:
+
+			if piece.MANA >= 5:
+				piece.MANA -= 5
+				self.pieces += [piece.copy()]
+
+
+	def show_score(self):
+		for line in self.get_score():
+			print(line)
+
+	def get_score(self):
+
+		lines = []
+		lines.append('Scores:')
+		for piece in self.pieces:
+			if piece.isHuman:
+				PType = 'Human: '
+			else:
+				PType = 'AI:    '
+			lines.append(PType+
+				'HP: '+str(piece.HP)+
+				'   MANA: '+str(piece.MANA))
+
+		return(lines)
+
 	def train_all(self):
 
-		players = [piece for piece in self.pieces if piece.isHuman]
-		agents = [piece for piece in self.pieces if not piece.isHuman]
+		players = [piece for piece in self.pieces if piece.isHuman and not piece.isDead]
+		agents = [piece for piece in self.pieces if not piece.isHuman and not piece.isDead]
 
 		training_data = []
 		for p in players:
 			while not p.controller.training_queue.empty():
 				training_data.append(p.controller.training_queue.get())
 
-		for a in agents:
+		for a in agents+players:
 			for percept,action in training_data:
-				a.controller.PDF_Update(percept,action)
+				a.controller.train(percept,action)
 
 	def show_board(self):
 
@@ -94,24 +138,20 @@ class simple_game:
 		# for k in self.board.keys():
 		for piece in self.pieces:
 
-			coords = piece.get_visible_coords()
-			for k in coords:
-				k = str(k)
+			if not piece.isDead:
 
-				coord = k[1:-1]
-				coord = coord.split(',')
-				coord = [int(coord[i]) for i in [0,1]]
+				coords = piece.get_visible_coords()
+				for k in coords:
+					k = str(k)
 
-				canvas[coord[0]-self.xmin,coord[1]-self.ymin] = self.board[k]+1
+					coord = k[1:-1]
+					coord = coord.split(',')
+					coord = [int(coord[i]) for i in [0,1]]
+
+					canvas[coord[0]-self.xmin,coord[1]-self.ymin] = self.board[k]+1
 
 		self.interface.put_frame(canvas)
-
-		# plt.figure('Game Board')
-		# plt.cla()
-		# plt.imshow(canvas)
-		# plt.show(block=False)
-		# plt.pause(.01)
-
+		self.interface.textbox.put(self.get_score())
 
 
 	def init_pieces(self):
@@ -120,7 +160,7 @@ class simple_game:
 
 		self.init_player()
 
-		self.init_agent()
+		# self.init_agent()
 
 	def init_agent(self):
 
@@ -171,6 +211,13 @@ class Piece:
 
 		self.location = np.array(location)
 
+		self.HP = 10
+
+		self.MANA = 0
+
+		self.isDead = False
+
+
 		# Controller has "get_move(P)" attribute
 		self.controller = controller
 
@@ -178,8 +225,16 @@ class Piece:
 		if 'player' in str(type(controller)):
 			self.isHuman = True
 
+		self.score = 0
 
-	def get_move(self,P):
+	def copy(self):
+
+		new_agent = Piece(self.controller.copy(),self.location)
+		new_agent.MANA = self.MANA
+		new_agent.HP = self.HP
+		return(new_agent)
+
+	def get_move(self,P,board):
 		move_idx = self.controller.get_move(P)
 
 		# stop, up, down, left, right
@@ -189,6 +244,19 @@ class Piece:
 		move = np.array(moves[move_idx])
 
 		self.location += move
+
+		key = str(list(self.location))		
+		stepping_on = board[key]
+
+		if stepping_on == 1:
+			self.HP -= 1
+			board[key] = 0
+			if self.HP == 0:
+				self.isDead = True
+
+		if stepping_on == 2:
+			self.MANA += 1
+			board[key] = 0
 
 		return(move)
 

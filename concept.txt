@@ -38,9 +38,33 @@ Finite Resources limits clones, limits training time.
 
 network consolidation
 
+Constraints on the map allow for a higher collision probability
 
+A generative algorithm is a random number generator.
 
+Now we generate random traversals of the random state space.
 
+But what if the generator has strong structural patterns.
+
+Such as spatial correlation, or time correlation.
+
+What of emergent correlation? / Fractal or genetic similarity
+
+This is kind of a simulation game.
+
+Or ancestor simulation as they say.
+
+They grow more like themselves over time.
+
+And their traits define their performance.
+
+Yet the weak perish!
+
+So the strong prevail.
+
+As you pan out, you shift roles from tunneller to evolutionary architect.
+
+You spend collected mana on upgrades
 
 
 
