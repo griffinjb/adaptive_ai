@@ -1,6 +1,7 @@
 from agent import *
 from player import *
 from interface import *
+import argparse
 import sys
 import argparse
 
@@ -22,6 +23,13 @@ import argparse
 class simple_game:
 
 	def __init__(self,resource_density=[.6,.2,.2]):
+
+		parser = argparse.ArgumentParser()
+		# --windowed
+		parser.add_argument('--windowed',
+				action='store_true',
+				help='Starts game in windowed mode')
+		args = parser.parse_args()
 
 		parser = argparse.ArgumentParser()
 		# --windowed
