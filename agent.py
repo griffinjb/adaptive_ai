@@ -109,9 +109,9 @@ class agent:
 
 	def train(self,P,A):
 
-		# self.PDF_Update(P,A)
+		self.PDF_Update(P,A)
 
-		self.least_squares_update(P,A)
+		# self.least_squares_update(P,A)
 
 
 	# assume P is flattened
