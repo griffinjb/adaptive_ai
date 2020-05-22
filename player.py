@@ -15,10 +15,16 @@ class player:
 
 		self.watcher = agent(9,5,3) # fix hardcode
 
+		self.kill_flag = False
+
 	def get_move(self,P):
 		m = self.interface.get_move(P)
-		self.training_queue.put([P,m])
-		return(m)
+		if m == -1:
+			self.kill_flag = True
+			return(0)
+		else:
+			self.training_queue.put([P,m])
+			return(m)
 
 	def copy(self):
 		new_agent = self.watcher.copy()

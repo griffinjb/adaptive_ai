@@ -1,0 +1,23 @@
+
+simple_game
+
+	Interface (game needs to send to screen)
+
+	Pieces
+
+		board
+
+		Agent 
+
+			Percept (agent needs to percieve environment)
+
+		Player		
+			Percept (Player needs to percieve environment)
+			Interface (player read user input)
+
+
+
+
+
+
+

@@ -39,7 +39,7 @@ class Interface:
 
 		self.screen_size = [800,800]
 
-		self.quit_flag = False
+		self.quit_flag 	= False
 		self.score_flag = False
 
 		# From command-line arguments
@@ -79,8 +79,12 @@ class Interface:
 				self.move.put(2)
 			if event.unicode == 'd':
 				self.move.put(4)
+			if event.unicode == 'x':
+				self.move.put(-1)
+
 			if event.unicode == 'f':
 				self.score_flag = True
+				
 			if event.key == pygame.K_F11:
 
 				if (self.screen.get_flags() & pygame.FULLSCREEN):

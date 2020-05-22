@@ -1,6 +1,7 @@
 from agent import *
 from player import *
 from interface import *
+from board import *
 import argparse
 import sys
 import argparse
@@ -20,6 +21,11 @@ import argparse
 
 	# hardcoded -> player copy agent
 
+	# standardize class capitalization
+
+		# Class - for name of class
+		# class - for instantiation
+
 class simple_game:
 
 	def __init__(self,resource_density=[.6,.2,.2]):
@@ -31,32 +37,29 @@ class simple_game:
 				help='Starts game in windowed mode')
 		args = parser.parse_args()
 
-		parser = argparse.ArgumentParser()
-		# --windowed
-		parser.add_argument('--windowed',
-				action='store_true',
-				help='Starts game in windowed mode')
-		args = parser.parse_args()
+		# number of recent moves in percept
+		self.move_memory = 1
 
-		self.xmin = -5
-		self.xmax = 5
-		self.ymax = 5
-		self.ymin = -5
+		# shape of board vision per agent
+		self.env_percept_shape = [3,3]
+
+
+
+		self.FPS = 10
+		self.capture_FPS = 30
 
 		self.interface = Interface(args)
 
-		self.resource_density = resource_density 
+		self.resource_density = resource_density
 
 		self.init_pieces()
 
 		self.init_board()
 
-		self.FPS = 10
-		self.capture_FPS = 30
 
 	def init_board(self):
 
-		self.board = {}
+		self.board = Board(self.resource_density)
 
 		for piece in self.pieces:
 
@@ -64,18 +67,7 @@ class simple_game:
 
 			for coord in visible_coords:
 
-				if coord[0] > self.xmax:
-					self.xmax = coord[0]
-				if coord[0] < self.xmin:
-					self.xmin = coord[0]
-				if coord[1] < self.ymin:
-					self.ymin = coord[1]
-				if coord[1] > self.ymax:
-					self.ymax = coord[1]
-
-				if str(coord) not in self.board.keys():
-
-					self.board[str(coord)] = self.new_block(coord)
+				self.board.set(coord)
 
 	def iter(self):
 
@@ -141,9 +133,8 @@ class simple_game:
 
 	def show_board(self):
 
-		canvas = np.zeros([self.xmax-self.xmin,self.ymax-self.ymin])
+		canvas = self.board.get_canvas()
 
-		# for k in self.board.keys():
 		for piece in self.pieces:
 
 			if not piece.isDead:
@@ -156,7 +147,7 @@ class simple_game:
 					coord = coord.split(',')
 					coord = [int(coord[i]) for i in [0,1]]
 
-					canvas[coord[0]-self.xmin,coord[1]-self.ymin] = self.board[k]+1
+					canvas[coord[0]-self.board.xmin,coord[1]-self.board.ymin] = self.board.at(coord)+1
 
 		self.interface.put_frame(canvas)
 		self.interface.textbox.put(self.get_score())
@@ -178,23 +169,9 @@ class simple_game:
 	def init_player(self):
 		self.pieces += [Piece(player(self.interface),[0,0])]
 
-	def new_block(self,coord):
-
-		PDF = self.resource_density
-
-		val = np.sum([step(np.random.uniform(0,1)-np.sum(PDF[:i]),1) for i in range(1,len(self.resource_density))])
-		if val == 1:
-			val = 0
-
-		if coord[0]%2 and val == 0:
-			val = 1
-
-		return(val)
-
 	def get_percept(self,piece):
 
 		coords = piece.get_visible_coords()
-
 
 		P = np.zeros(len(coords))
 
@@ -202,27 +179,19 @@ class simple_game:
 
 		for coord in coords:
 
-			if coord[0] > self.xmax-1:
-				self.xmax = coord[0]+1
-			if coord[0] < self.xmin:
-				self.xmin = coord[0]
-			if coord[1] < self.ymin:
-				self.ymin = coord[1]
-			if coord[1] > self.ymax-1:
-				self.ymax = coord[1]+1
+			self.board.set(coord)
 
-			if str(coord) in self.board.keys():
-				P[i] = self.board[str(coord)]
-			else:
-				self.board[str(coord)] = self.new_block(coord)
-				P[i] = self.board[str(coord)]
+			P[i] = self.board.at(coord)
+
 			i += 1
 
-		return(P.flatten())
+		return(P)
 
 class Piece:
 
-	def __init__(self,controller,location=[0,0]):
+	def __init__(self,
+				controller,
+				location=[0,0]):
 
 		self.location = np.array(location)
 
@@ -231,7 +200,6 @@ class Piece:
 		self.MANA = 0
 
 		self.isDead = False
-
 
 		# Controller has "get_move(P)" attribute
 		self.controller = controller
@@ -250,28 +218,31 @@ class Piece:
 		return(new_agent)
 
 	def get_move(self,P,board):
+
 		move_idx = self.controller.get_move(P)
 
+		if self.isHuman:
+			if self.controller.kill_flag:
+				self.isDead = True
+
 		# stop, up, down, left, right
-		# moves = [[0,0],[-1,0],[1,0],[0,-1],[0,1]]
 		moves = [[0,0],[0,-1],[0,1],[-1,0],[1,0]]
 
 		move = np.array(moves[move_idx])
 
 		self.location += move
 
-		key = str(list(self.location))		
-		stepping_on = board[key]
+		stepping_on = board.at(self.location)
 
 		if stepping_on == 1:
 			self.HP -= 1
-			board[key] = 0
+			board.set(self.location,0)
 			if self.HP == 0:
 				self.isDead = True
 
 		if stepping_on == 2:
 			self.MANA += 1
-			board[key] = 0
+			board.set(self.location,0)
 
 		return(move)
 
@@ -282,10 +253,12 @@ class Piece:
 		return([[self.location[0]+mod[0],self.location[1]+mod[1]] for mod in mods])
 
 
-G = simple_game()
+if __name__ == '__main__':
 
-while 1:
-	G.iter()
+	G = simple_game()
+
+	while 1:
+		G.iter()
 
 
 
