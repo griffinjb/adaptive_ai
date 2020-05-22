@@ -85,7 +85,7 @@ class agent:
 		# Use Least Squares solution
 
 		w_opt = np.linalg.pinv(self.R) @ self.C
-		return()
+		return(w_opt@P)
 
 
 	def least_squares_update(P,A):
