@@ -17,7 +17,7 @@ class agent:
 
 		self.i 	= 0		# iteration
 
-		self.B 	= B		# base for keygen
+		self.B 	= B		# bases for keygen
 						# N states per dim
 
 		self.feedback = 0 # Training Feedback
@@ -33,9 +33,9 @@ class agent:
 		# N points = B**NP
 
 
-		self.PDFs = [None for _ in range(self.B**NP)]
+		self.PDFs = [None for _ in range(np.prod(B))]
 
-		self.js = [0 for _ in range(self.B**NP)]
+		self.js = [0 for _ in range(np.prod(B))]
 
 	def copy(self):
 		new_agent = agent(self.NP,self.NA,self.B)
@@ -53,7 +53,8 @@ class agent:
 
 		# assume P is column 
 
-		t = np.array([self.B**i for i in range(self.NP)])
+		t = np.array([np.prod(self.B[:i]) for i in range(self.NP)])
+		# t = np.array([self.B**i for i in range(self.NP)])
 
 		return(int(t@P))
 
@@ -78,7 +79,7 @@ class agent:
 		# This cannot be realized with 0-vector, thus the 
 		# mean must be shifted to the centroid of the hypercube?
 
-		
+
 
 
 

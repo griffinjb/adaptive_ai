@@ -34,5 +34,5 @@ class Percept:
 				P[i] = self.board[str(coord)]
 			i += 1
 
-		return(P.flatten())		
+		return(P.flatten())
 

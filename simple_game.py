@@ -37,13 +37,17 @@ class simple_game:
 				help='Starts game in windowed mode')
 		args = parser.parse_args()
 
-		# number of recent moves in percept
-		self.move_memory = 1
 
+		# Percept config
 		# shape of board vision per agent
 		self.env_percept_shape = [3,3]
-
-
+		# number of recent moves in percept
+		self.move_memory = 1
+		self.N_env_states 	= 3
+		self.N_spatial_percepts	= np.prod(self.env_percept_shape)
+		self.N_percepts 	= self.N_spatial_percepts + self.move_memory
+		self.N_actions		= 5
+		self.P_bases		= [self.N_env_states for _ in range(self.N_spatial_percepts)]+[self.N_actions for _ in range(self.move_memory)]
 
 		self.FPS = 10
 		self.capture_FPS = 30
@@ -163,17 +167,18 @@ class simple_game:
 
 	def init_agent(self):
 
-		# init agent (num percepts, num actions, base)
-		self.pieces += [Piece(agent(9,5,3),[0,0]) for _ in range(10)]
+		# init agent (num percepts, num actions, bases)
+		self.pieces += [Piece(agent(self.N_percepts,self.N_actions,self.P_bases),[0,0],self.move_memory) for _ in range(10)]
 
 	def init_player(self):
-		self.pieces += [Piece(player(self.interface),[0,0])]
+		self.pieces += [Piece(player(self.interface,self.N_percepts,self.N_actions,self.P_bases),[0,0],self.move_memory)]
 
 	def get_percept(self,piece):
 
 		coords = piece.get_visible_coords()
 
-		P = np.zeros(len(coords))
+		# Spatial Percept
+		SP = np.zeros(len(coords))
 
 		i = 0
 
@@ -181,9 +186,14 @@ class simple_game:
 
 			self.board.set(coord)
 
-			P[i] = self.board.at(coord)
+			SP[i] = self.board.at(coord)
 
 			i += 1
+
+		# Temporal Percept
+		TP = piece.move_memory_buffer
+
+		P = np.hstack([SP,TP])
 
 		return(P)
 
@@ -191,7 +201,9 @@ class Piece:
 
 	def __init__(self,
 				controller,
-				location=[0,0]):
+				location=[0,0],
+				move_memory=0
+				):
 
 		self.location = np.array(location)
 
@@ -200,6 +212,8 @@ class Piece:
 		self.MANA = 0
 
 		self.isDead = False
+
+		self.move_memory_buffer = np.zeros(move_memory)
 
 		# Controller has "get_move(P)" attribute
 		self.controller = controller
@@ -212,7 +226,7 @@ class Piece:
 
 	def copy(self):
 
-		new_agent = Piece(self.controller.copy(),self.location)
+		new_agent = Piece(self.controller.copy(),self.location,self.move_memory_buffer.shape[0])
 		new_agent.MANA = self.MANA
 		new_agent.HP = self.HP
 		return(new_agent)
@@ -243,6 +257,9 @@ class Piece:
 		if stepping_on == 2:
 			self.MANA += 1
 			board.set(self.location,0)
+
+		self.move_memory_buffer[1:] = self.move_memory_buffer[:-1]
+		self.move_memory_buffer[0] = move_idx
 
 		return(move)
 

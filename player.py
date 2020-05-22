@@ -7,13 +7,18 @@ from agent import *
 
 class player:
 
-	def __init__(self,interface):
+	def __init__(self,
+				interface,
+				N_percepts,
+				N_actions,
+				P_bases
+				):
 
 		self.interface = interface
 
 		self.training_queue = queue.Queue()
 
-		self.watcher = agent(9,5,3) # fix hardcode
+		self.watcher = agent(N_percepts,N_actions,P_bases)
 
 		self.kill_flag = False
 

@@ -1,0 +1,16 @@
+How can I repurpose this for EEG processing?
+
+The training data is the player
+
+The environment is the EEG signal space
+
+
+
+
+
+
+
+
+
+
+
