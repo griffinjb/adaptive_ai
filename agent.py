@@ -32,6 +32,9 @@ class agent:
 
 		# N points = B**NP
 
+		self.R = np.zeros([NP,NP])	# autocorrelation
+		self.C = np.zeros([NA,1])	# cross-correlation
+
 
 		self.PDFs = [None for _ in range(np.prod(B))]
 
@@ -64,7 +67,7 @@ class agent:
 			self.PDF_Update(P,m)
 		return(m)
 
-	# def linear_map(self,P):
+	def linear_map(self,P):
 
 		# This policy estimator uses a set of linear filters.
 
@@ -79,8 +82,16 @@ class agent:
 		# This cannot be realized with 0-vector, thus the 
 		# mean must be shifted to the centroid of the hypercube?
 
+		# Use Least Squares solution
+
+		w_opt = np.linalg.pinv(self.R) @ self.C
+		return()
 
 
+	def least_squares_update(P,A):
+
+		self.R += P[:,None]@P[None,:]
+		self.i += 1
 
 
 	def stochastic_map(self,P):
@@ -98,7 +109,10 @@ class agent:
 
 	def train(self,P,A):
 
-		self.PDF_Update(P,A)
+		# self.PDF_Update(P,A)
+
+		self.least_squares_update(P,A)
+
 
 	# assume P is flattened
 	def PDF_Update(self,P,A):

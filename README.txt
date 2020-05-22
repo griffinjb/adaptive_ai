@@ -18,7 +18,5 @@ Install and Run:
 
 	pip install -r requirements.txt
 
-	pip install -r requirements.txt
-
 	python simple_game.py
 

@@ -28,7 +28,7 @@ import argparse
 
 class simple_game:
 
-	def __init__(self,resource_density=[.6,.2,.2]):
+	def __init__(self):
 
 		parser = argparse.ArgumentParser()
 		# --windowed
@@ -54,7 +54,10 @@ class simple_game:
 
 		self.interface = Interface(args)
 
-		self.resource_density = resource_density
+		# Neutral, Bad, Good
+		self.resource_density = [.6,.2,.2]
+		# self.resource_density = [0,0,1]
+
 
 		self.init_pieces()
 
