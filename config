@@ -1,0 +1,8 @@
+[video]
+width = 1200
+height = 800
+fps = 30
+
+[world]
+width = 20
+height = 20
