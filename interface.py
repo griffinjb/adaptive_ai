@@ -1,147 +1,183 @@
-import numpy as np 
-import threading
-import queue
+import numpy as np
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
-import matplotlib.pyplot as plt
-import time
-
-# Handles Issue where pygame display and capture
-# must run from same thread.
-
-# can handle requests via Q for:
-
-	# Screen update
-
-	# User Input
-
-# Features:
-
-	# F11 -> Toggle Full Screen
-	# ESC -> Exit
-	# WASD -> Directional Control
-
-# Bugs:
-
-	# no corner drag resizing
-	# aspect ratio gets warped
-
 
 class Interface:
-
-	def __init__(self, args):
-
-		self.move = queue.Queue()
-		self.render = queue.Queue()
-		self.textbox = queue.Queue()
-
-		self.I = threading.Thread(target=self.main_thread,daemon=True)
-		self.I.start()
-
-		self.screen_size = [800,800]
-
-		self.quit_flag 	= False
-		self.score_flag = False
-
-		# From command-line arguments
+	def __init__(self, width, height, args):
 		self.display_flags = pygame.FULLSCREEN | pygame.RESIZABLE
 		if args.windowed:
 			self.display_flags ^= pygame.FULLSCREEN
 
-	def main_thread(self):
+		self.screen_size = [width, height]
+		self.close_requested = False
+		self.zoom = 50
+
+		self.last_key = None
 
 		pygame.init()
+		self.frame = pygame.Surface(self.screen_size)
+
+		# Initialize Display
 		self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
+		pygame.display.set_caption("Adaptive AI Demo")
+
+		# Setup Events
 		pygame.event.set_blocked(None)
 		pygame.event.set_allowed([
-								pygame.KEYDOWN,
-								pygame.QUIT,
-								pygame.VIDEORESIZE
-								])
-
-
-		while 1:
-
-			# If screen update, render
-			self.show_board()
-
-			self.poll_user_input()
+			pygame.KEYDOWN,
+			pygame.KEYUP,
+			pygame.QUIT,
+			pygame.VIDEORESIZE])
 
 	def poll_user_input(self):
-
 		event = pygame.event.poll()
 
-		if event.type == pygame.KEYDOWN:
-			if event.unicode == 'w':
-				self.move.put(1)
-			if event.unicode == 'a':
-				self.move.put(3)
-			if event.unicode == 's':
-				self.move.put(2)
-			if event.unicode == 'd':
-				self.move.put(4)
-			if event.unicode == 'x':
-				self.move.put(-1)
+		_type = event.type
 
-			if event.unicode == 'f':
-				self.score_flag = True
-				
-			if event.key == pygame.K_F11:
+		dxy = (0, 0)
 
-				if (self.screen.get_flags() & pygame.FULLSCREEN):
-					self.display_flags ^= pygame.FULLSCREEN
-				else:
-					self.display_flags |= pygame.FULLSCREEN
-				# Update display flags
-				self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)					
-
-			if event.key == pygame.K_ESCAPE:
-				self.quit_flag = True
-
-		if event.type == pygame.VIDEORESIZE:
+		# KEYDOWN
+		if _type == pygame.KEYDOWN:
+			key = event.key
+			dxy = self.handle_key(key)
+			self.last_key = key
+		elif _type == pygame.KEYUP:
+			self.last_key = None
+		# QUIT
+		elif _type == pygame.QUIT:
+			self.close_requested = True
+		# VIDEORESIZE
+		elif _type == pygame.VIDEORESIZE:
 			self.screen_size = list(event.size)
 			self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
-		
-		if event.type == pygame.QUIT:
-			self.quit_flag = True
+			self.frame = pygame.Surface(self.screen_size)
+		elif self.last_key != None:
+			dxy = self.handle_key(self.last_key)
 
-	def get_move(self,P):
+		return dxy
 
-		if not self.move.empty():
-			return(self.move.get())
-		else:
-			return(0)
+	def handle_key(self, key):
+		dxy = (0, 0)
+		# F11 - Toggle Fullscreen
+		if key == pygame.K_w:
+			dxy = (0, -1)
+		elif key == pygame.K_a:
+			dxy = (-1, 0)
+		elif key == pygame.K_s:
+			dxy = (0, 1)
+		elif key == pygame.K_d:
+			dxy = (1, 0)
+		elif key == pygame.K_UP:
+			zoom = self.zoom + 1
+			if zoom <= 100:
+				self.zoom = zoom
+		elif key == pygame.K_DOWN:
+			zoom = self.zoom - 1
+			if zoom >= 30:
+				self.zoom = zoom
+		elif key == pygame.K_F11:
+			if (self.screen.get_flags() & pygame.FULLSCREEN):
+				self.display_flags ^= pygame.FULLSCREEN
+			else:
+				self.display_flags |= pygame.FULLSCREEN
+			self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
+		# ESC - Quit interface
+		elif key == pygame.K_ESCAPE or key == pygame.K_q:
+			self.close_requested = True
 
+		return dxy
 
-	def put_frame(self,frame):
+	def update(self):
+		return self.poll_user_input()
 
-		self.render.put(frame)
+	def render(self, world):
+		#self.screen.fill(world.skybox)
 
+		(px, py) = world.player.pos()
+		self.look_at = (px + world.player.width() / 2, py + world.player.height() / 2)
 
-	def show_board(self):
+		self.frame.fill(world.skybox)
+		# inet-2d (da95dd5): 
+		#       30x30: ~35 ms. / ~40 ms.,
+		#     500x500: >2 sec.
+		# inet-2d (latest):
+		#       30x30: ~9.1 ms.
+		#     500x500: ~20.5 ms.
+		tx1 = px - 25
+		if tx1 < 0:
+			tx1 = 0
+		tx2 = px + 25
+		if tx2 >= world.floor.shape[0]:
+			tx2 = world.floor.shape[0]
+		ty1 = py - 25
+		if ty1 < 0:
+			ty1 = 0
+		ty2 = py + 25
+		if ty2 >= world.floor.shape[1]:
+			ty2 = world.floor.shape[1]
 
-		if not self.render.empty():
+		for entity in world.floor[tx1:tx2, ty1:ty2].flat:
+			self.render_entity(entity)
+		for entity in world.entities:
+			self.render_entity(entity)
 
-			canvas = self.render.get()
-			text = self.textbox.get()
+		self.render_entity(world.player)
+		self.render_hud(world.player)
 
-			RGB_canvas = np.zeros([canvas.shape[0],canvas.shape[1],3])
+		self.screen.blit(self.frame, (0, 0))
+		pygame.display.flip()
 
-			# Colors of squares, rgb
-			# [background, floor, lava, gold,text]
-			colors = [[0,0,0],[6,78,102],[255,131,36],[255,210,48],[26,135,35]]
+	def render_entity(self, entity):
+		if entity == None:
+			return
 
-			for i in range(canvas.shape[0]):
-				for j in range(canvas.shape[1]):
-					a = ''
-					RGB_canvas[i,j,:] = np.array(colors[int(canvas[i,j])])
+		# Since the game is top-down 2D the rendering is a simple linear transformation: mX + b
+		#     m := [x0, y0, x1, y1]' - [camera_x, camera_y, camera_x, camera_y]'
+		#     X := [[sx, 0], [0, sy]]
+		#     b := [res_w / 2, res_h /2]
 
-			RGB_surface = pygame.surfarray.make_surface(RGB_canvas)
-			RGB_surface = pygame.transform.scale(RGB_surface,tuple(self.screen_size))
+		# Translate Origin (m)
+		(px, py) = np.subtract(entity.pos(), self.look_at)
 
+		# Perspective Transformation (X)
+		sx = self.zoom * px
+		sy = self.zoom * py
+		ex = sx + self.zoom*entity.width()
+		ey = sy + self.zoom*entity.height()
 
-			# txt_img = cv2.putText(txt_img,'OpenCV')
+		# Apply Screen Translation (b)
+		stx = self.screen_size[0] >> 1
+		sty = self.screen_size[1] >> 1
+		rec = [ sx + stx, sy + sty, ex - sx, ey - sy ]
 
+		# Apply Culling
+		if rec[0] >= self.screen_size[0] or rec[1] >= self.screen_size[1]:
+			return 0
+		elif rec[0] + rec[2] <= 0 or rec[1] + rec[3] <= 0:
+			return 0
 
-			self.screen.blit(RGB_surface,(0,0))
-			pygame.display.update()
+		# Apply Clipping
+		if rec[0] + rec[2] > self.screen_size[0]:
+			rec[2] = self.screen_size[0] -  rec[0]
+		if rec[1] + rec[3] > self.screen_size[1]:
+			rec[3] = self.screen_size[1] -  rec[1]
 
+		# Render Tile
+		pygame.draw.rect(self.frame, entity.color(), rec)
+
+		return 1
+
+	def render_hud(self, player):
+		pygame.draw.rect(self.frame, (229,  57,  53), (10, 10, 210, 20))
+		if player.health() != 0:
+			pygame.draw.rect(self.frame, (0, 230, 118), (10, 10, player.health()/10*210, 20))
+		pygame.draw.rect(self.frame, (0, 0, 0), (10, 10, 210, 20), 1)
+
+		pygame.draw.rect(self.frame, (128/4, 216/4, 255/4), (10, 40, 210, 20))
+		if player.mana() != 0:
+			pygame.draw.rect(self.frame, (3, 155, 229), (10, 40, player.mana()/10.0*210, 20))
+		pygame.draw.rect(self.frame, (0, 0, 0), (10, 40, 210, 20), 1)
+
+	def should_close(self):
+		return self.close_requested
