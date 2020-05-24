@@ -75,9 +75,9 @@ class Entity(object):
 
 class Player(Entity):
 	_health = 10
-	_maxhealth = 10
+	_max_health = 10
 	_mana = 0
-	_maxmana = 10
+	_max_mana = 10
 	_state = EntityState.ALIVE
 
 	def __init__(self, pos):
@@ -102,8 +102,8 @@ class Player(Entity):
 		if health <= 0:
 			health = 0
 			self.state(EntityState.DEAD)
-		elif health >= self._maxhealth:
-			mana = self._maxmana
+		elif health >= self._max_health:
+			health = self._max_health
 
 		self._health = health
 
@@ -117,12 +117,32 @@ class Player(Entity):
 		# Set()
 		if mana <= 0:
 			mana = 0
-		elif mana >= self._maxmana:
-			mana = self._maxmana
+		elif mana >= self._max_mana:
+			mana = self._max_mana
 
 		self._mana = mana
 
 		return self._mana
+
+	def max_health(self, max_health = None):
+		# Get()
+		if max_health == None:
+			return self._max_health
+
+		# Set()
+		self._max_health = max_health
+
+		return self._max_health
+
+	def max_mana(self, max_mana = None):
+		# Get()
+		if max_mana == None:
+			return self._max_mana
+
+		# Set()
+		self._max_mana = max_mana
+
+		return self._max_mana
 
 	def state(self, state = None):
 		# Get()
