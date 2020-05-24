@@ -16,6 +16,7 @@ class Interface:
 
 		# Initialize Display
 		self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
+		pygame.display.set_caption("Adaptive AI Demo")
 
 		# Setup Events
 		pygame.event.set_blocked(None)
@@ -69,43 +70,67 @@ class Interface:
 	def render(self, world):
 		self.screen.fill(world.skybox)
 
-		self.look_at = np.multiply(50, [world.player.x + world.player.width/2.0, world.player.y + world.player.height/2.0])
+		(px, py) = world.player.pos()
+		self.look_at = (px + world.player.width() / 2, py + world.player.height() / 2)
 
-		for entity in world.floor.flatten():
-			if not entity:
-				continue
+		for entity in world.floor.flat:
 			self.render_entity(entity)
 		for entity in world.entities:
-			if not entity:
-				continue
 			self.render_entity(entity)
 
 		self.render_entity(world.player)
+		self.render_hud(world.player)
 
 		pygame.display.update()
 
 	def render_entity(self, entity):
-		vec1 = [entity.x, entity.y]
-		vec2 = [entity.x + entity.width, entity.y + entity.height]
+		if entity == None:
+			return
 
-		# Perspective Transformation
+		# Since the game is top-down 2D the rendering is a simple linear transformation: mX + b
+		#     m := [x0, y0, x1, y1]' - [camera_x, camera_y, camera_x, camera_y]'
+		#     X := [[sx, 0], [0, sy]]
+		#     b := [res_w / 2, res_h /2]
+
+		# Translate Origin (m)
+		(ex, ey) = np.subtract(entity.pos(), self.look_at)
+		vec1 = [ex, ey]
+		vec2 = [ex + entity.width(), ey + entity.height()]
+
+		# Perspective Transformation (X)
 		persp = np.matrix([[50, 0], [0, 50]])
-
 		vec1 = vec1*persp
 		vec2 = vec2*persp
 
-		# Apply Screen Translation
-		res = [self.look_at[0] - self.screen_size[0]/2 - 1, self.look_at[1] - self.screen_size[1]/2 - 1]
-		rec = [ vec1[0, 0] - res[0], vec1[0, 1] - res[1], vec2[0, 0] - vec1[0, 0], vec2[0, 1] - vec1[0, 1] ]
+		# Apply Screen Translation (b)
+		screen_trans = [ self.screen_size[0] / 2, self.screen_size[1] / 2]
+		rec = [ vec1[0, 0] + screen_trans[0], vec1[0, 1] + screen_trans[1], vec2[0, 0] - vec1[0, 0], vec2[0, 1] - vec1[0, 1] ]
+
+		# Apply Culling
+		if rec[0] >= self.screen_size[0] or rec[1] >= self.screen_size[1]:
+			return
+		elif rec[0] + rec[2] <= 0 or rec[1] + rec[3] <= 0:
+			return
 
 		# Apply Clipping
-		if rec[0] + rec[2] >= self.screen_size[0]:
-			rec[2] = self.screen_size[0] - 1 - rec[0]
-		if rec[1] + rec[3] >= self.screen_size[1]:
-			rec[3] = self.screen_size[1] - 1 - rec[1]
+		if rec[0] + rec[2] > self.screen_size[0]:
+			rec[2] = self.screen_size[0] -  rec[0]
+		if rec[1] + rec[3] > self.screen_size[1]:
+			rec[3] = self.screen_size[1] -  rec[1]
 
 		# Render Tile
-		pygame.draw.rect(self.screen, entity.color, rec)
+		pygame.draw.rect(self.screen, entity.color(), rec)
+
+	def render_hud(self, player):
+		pygame.draw.rect(self.screen, (229,  57,  53), (10, 10, 210, 20))
+		if player.health() != 0:
+			pygame.draw.rect(self.screen, (0, 230, 118), (10, 10, player.health()/10*210, 20))
+		pygame.draw.rect(self.screen, (0, 0, 0), (10, 10, 210, 20), 1)
+
+		pygame.draw.rect(self.screen, (128/4, 216/4, 255/4), (10, 40, 210, 20))
+		if player.mana() != 0:
+			pygame.draw.rect(self.screen, (3, 155, 229), (10, 40, player.mana()/10.0*210, 20))
+		pygame.draw.rect(self.screen, (0, 0, 0), (10, 40, 210, 20), 1)
 
 	def should_close(self):
 		return self.close_requested

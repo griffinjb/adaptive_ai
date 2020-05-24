@@ -24,7 +24,7 @@ class Client:
 		self.close_requested = False
 
 		self.world = World(world_width, world_height)
-		self.world.spawn(Player(4, 4))
+		self.world.spawn(Player((int(world_width/2), int(world_height/2))))
 
 		self.interface = Interface(screen_width, screen_height, args)
 
