@@ -1,5 +1,5 @@
 import numpy as np
-
+from math_utils import *
 from entities import *
 
 def worldgenerator(densities, width, height):
@@ -23,22 +23,26 @@ def worldgenerator(densities, width, height):
 
 	return floor
 
-# TODO: Move this somewhere else
-def step(x, A):
-	if x >= 0:
-		return A
-	else:
-		return 0
-
 class World:
 	def __init__(self, width, height):
 		self.floor = worldgenerator([0.8, 0.1, 0.1], width, height)
 		self.entities = np.empty(0, dtype=object)
 		self.skybox = (135/8, 206/8, 250/8)
+		self.players = []
+		self.PIDs = []
+		self.training_pool = []
 
 	def spawn(self, entity):
 		if entity.etype() == EntityType.PLAYER:
-			self.player = entity
+			self.players.append(entity)
+			i = 0
+			while 1:
+				if i not in self.PIDs:
+					self.players[-1].PID = i
+					self.PIDs.append(i)
+					break
+				i += 1
+
 		else:
 			self.add_entity(entity)
 
@@ -72,3 +76,40 @@ class World:
 			return
 
 		entity.move(block)
+
+	def perceive(self):
+		for player in self.players:
+			self.update_percept(player)
+
+	def react(self):
+		for player in self.players:
+			P = player.percept.vector
+			dxy = player.get_move(P)
+			self.move(player,dxy)
+			for watcher_PID in player.watchers:
+				self.training_pool.append([
+									watcher_PID,
+									P,
+									player.move_memory_buffer[0]
+									])
+
+	def learn(self):
+		# update watchers
+		for player in self.players:
+			while player.PID in player.watchers:
+				player.watchers.remove(player.PID)
+			tmp = self.training_pool
+			player.train([item for item in self.training_pool if item[0] == player.PID])
+
+
+	def update_percept(self,player):
+
+		# Get spatial percept
+		coords = player.get_visible_coords()
+		block_vals = []
+		for coord in coords:
+			block_vals.append(self.get_block(coord).etype().value[0])
+
+		player.percept.spatial(np.array(block_vals))
+
+		return

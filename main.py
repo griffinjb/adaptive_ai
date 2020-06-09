@@ -1,6 +1,6 @@
 from interface import *
 from world import *
-
+from agent import *
 import argparse
 import configparser
 import sys
@@ -24,14 +24,37 @@ class Client:
 		self.close_requested = False
 
 		self.world = World(world_width, world_height)
-		self.world.spawn(Player((int(world_width/2), int(world_height/2))))
 
 		self.interface = Interface(screen_width, screen_height, args)
+		
+		# Init Player
+		self.world.spawn(Player(
+							(int(world_width/2),int(world_height/2)),
+							cfg,
+							self.interface
+							))
+
+		# Init Agents
+		self.world.spawn(Player(
+							(int(world_width/2), int(world_height/2)),
+							cfg,
+							Agent(cfg)
+							))
+
+
 
 	def update(self):
-		dxy = self.interface.update()
-		self.world.move(self.world.player, dxy)
+		# dxy = self.interface.update()
+		# self.world.move(self.world.player, dxy)
 
+		# for player in self.world.players:
+		# 	percept = self.world.get_percept(player)
+		# 	dxy = player.get_move(percept)
+		# 	self.world.move(player,dxy)
+
+		self.world.perceive()
+		self.world.react()
+		self.world.learn()
 		return
 
 	def render(self):

@@ -1,5 +1,6 @@
 from enum import Enum
 import numpy as np
+from percept import *
 
 class EntityColor:
 	# KEY	     R    G    B
@@ -79,9 +80,56 @@ class Player(Entity):
 	_mana = 0
 	_max_mana = 10
 	_state = EntityState.ALIVE
+	controller = None
+	percept = None
+	PID = 0
+	watchers = []
 
-	def __init__(self, pos):
+	def __init__(self, pos, cfg, controller=None):
+		self.controller = controller
+		self.percept = Percept(eval(cfg.get('percept','percept_shapes')))
+		self.move_memory_buffer = np.zeros(eval(cfg.get('percept','percept_shapes'))[1])
+		self.isHuman = 'Interface' in str(type(controller))
+		self.watchers = [0,1,2,3]
 		super(Player, self).__init__(pos, EntityType.PLAYER, EntityColor.PLAYER)
+
+	def get_visible_coords(self):
+
+		mods = [[-1,-1],[-1,0],[0,-1],[1,-1],[-1,1],[0,0],[1,0],[0,1],[1,1]]
+		return([[self._x+mod[0],self._y+mod[1]] for mod in mods])
+
+	def update_memory(self,new_move):
+
+		self.move_memory_buffer[1:] = self.move_memory_buffer[:-1]
+		self.move_memory_buffer[0] = new_move
+		self.percept.temporal(self.move_memory_buffer)
+
+	def get_move(self,percept):
+		move_idx = self.controller.get_move(self.percept.vector)
+
+		self.update_memory(move_idx)
+
+		if move_idx == 0:
+			move = (0,0)
+		if move_idx == 1:
+			move = (0,1)
+		if move_idx == 2:
+			move = (0,-1)
+		if move_idx == 3:
+			move = (-1,0)
+		if move_idx == 4:
+			move = (1,0)
+
+		return(move)
+
+	def train(self,training_items):
+		for training_item in training_items:
+			(_,percept,action) = training_item
+			if not self.isHuman:
+				self.controller.training_queue.append([percept,action])
+	
+		if not self.isHuman:
+			self.controller.train()
 
 	def move(self, block):
 		if block.etype() == EntityType.GOLD:
@@ -98,9 +146,10 @@ class Player(Entity):
 		if health == None:
 			return self._health
 
+		# health = np.min(np.max(health,0),self._max_health)
+
 		# Set()
-		if health <= 0:
-			health = 0
+		if health == 0:
 			self.state(EntityState.DEAD)
 		elif health >= self._max_health:
 			health = self._max_health

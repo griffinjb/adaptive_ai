@@ -35,12 +35,12 @@ class Interface:
 
 		_type = event.type
 
-		dxy = (0, 0)
+		move = 0
 
 		# KEYDOWN
 		if _type == pygame.KEYDOWN:
 			key = event.key
-			dxy = self.handle_key(key)
+			move = self.handle_key(key)
 			self.last_key = key
 		elif _type == pygame.KEYUP:
 			self.last_key = None
@@ -53,21 +53,24 @@ class Interface:
 			self.screen = pygame.display.set_mode(self.screen_size, self.display_flags)
 			self.frame = pygame.Surface(self.screen_size)
 		elif self.last_key != None:
-			dxy = self.handle_key(self.last_key)
+			move = self.handle_key(self.last_key)
 
-		return dxy
+		return move
+
+	def get_move(self,percept=None):
+		return(self.poll_user_input())
 
 	def handle_key(self, key):
-		dxy = (0, 0)
+		move = 0
 		# F11 - Toggle Fullscreen
 		if key == pygame.K_w:
-			dxy = (0, -1)
+			move = 2
 		elif key == pygame.K_a:
-			dxy = (-1, 0)
+			move = 3
 		elif key == pygame.K_s:
-			dxy = (0, 1)
+			move = 1
 		elif key == pygame.K_d:
-			dxy = (1, 0)
+			move = 4
 		elif key == pygame.K_UP:
 			zoom = self.zoom + 1
 			if zoom <= 100:
@@ -86,7 +89,7 @@ class Interface:
 		elif key == pygame.K_ESCAPE or key == pygame.K_q:
 			self.close_requested = True
 
-		return dxy
+		return move
 
 	def update(self):
 		return self.poll_user_input()
@@ -94,8 +97,9 @@ class Interface:
 	def render(self, world):
 		#self.screen.fill(world.skybox)
 
-		(px, py) = world.player.pos()
-		self.look_at = (px + world.player.width() / 2, py + world.player.height() / 2)
+		player = world.players[0]
+		(px, py) = player.pos()
+		self.look_at = (px + player.width() / 2, py + player.height() / 2)
 
 		self.frame.fill(world.skybox)
 		# inet-2d (da95dd5): 
@@ -122,8 +126,10 @@ class Interface:
 		for entity in world.entities:
 			self.render_entity(entity)
 
-		self.render_entity(world.player)
-		self.render_hud(world.player)
+		for player_ in world.players:
+			self.render_entity(player_)
+
+		self.render_hud(player)
 
 		self.screen.blit(self.frame, (0, 0))
 		pygame.display.flip()
